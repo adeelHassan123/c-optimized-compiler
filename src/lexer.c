@@ -346,4 +346,4 @@ void lexer_advance(void) {
 void token_print(Token t) {
     printf("Token(%s, \"%s\", line %d)\n", token_type_name(t.type), t.lexeme, t.line);
 }
-// Commit Marker
+// Commit Marker// Commit Marker
