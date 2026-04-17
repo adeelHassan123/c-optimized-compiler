@@ -1,0 +1,20 @@
+/* Test 3: Control flow and loops */
+main() {
+    int sum;
+    int i;
+    
+    sum = 0;
+    i = 1;
+    
+    while (i <= 10) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    
+    if (sum > 50) {
+        print(sum);
+    }
+    
+    return 0;
+}
+// Commit Marker
