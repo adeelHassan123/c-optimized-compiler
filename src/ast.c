@@ -270,4 +270,3 @@ void ast_traverse(ASTNode *node, void (*func)(ASTNode *)) {
             break;
     }
 }
-// Commit Marker

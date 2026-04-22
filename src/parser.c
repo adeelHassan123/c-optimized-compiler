@@ -468,4 +468,3 @@ int parser_get_position(void) {
 int parser_get_error_count(void) {
     return error_count;
 }
-// Commit Marker// Commit Marker

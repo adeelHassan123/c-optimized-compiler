@@ -35,4 +35,3 @@ const char *token_type_name(TokenType t);
 void token_print(Token t);
 
 #endif /* LEXER_H */
-// Commit Marker

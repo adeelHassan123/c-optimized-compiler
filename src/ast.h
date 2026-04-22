@@ -107,4 +107,3 @@ void ast_print(ASTNode *node, int indent);
 void ast_traverse(ASTNode *node, void (*func)(ASTNode *));
 
 #endif /* AST_H */
-// Commit Marker

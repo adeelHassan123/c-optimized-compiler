@@ -196,4 +196,3 @@ void symtab_print(void) {
 int symtab_get_error_count(void) {
     return error_count;
 }
-// Commit Marker

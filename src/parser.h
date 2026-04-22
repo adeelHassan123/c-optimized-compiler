@@ -31,4 +31,3 @@ int parser_get_position(void);
 int parser_get_error_count(void);
 
 #endif /* PARSER_H */
-// Commit Marker

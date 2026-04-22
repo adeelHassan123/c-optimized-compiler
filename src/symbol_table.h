@@ -62,4 +62,3 @@ void symtab_print(void);
 int symtab_get_error_count(void);
 
 #endif /* SYMBOL_TABLE_H */
-// Commit Marker

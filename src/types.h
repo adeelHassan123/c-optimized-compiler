@@ -60,4 +60,3 @@ typedef enum {
 #define STRING_MAX       512
 
 #endif /* TYPES_H */
-// Commit Marker

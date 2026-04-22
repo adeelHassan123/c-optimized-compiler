@@ -80,4 +80,3 @@ void ir_print(IRCode *code);
 void ir_free(IRCode *code);
 
 #endif /* IR_H */
-// Commit Marker
