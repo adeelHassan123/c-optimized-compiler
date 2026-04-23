@@ -1,8 +1,8 @@
 @echo off
-REM Lab 11 Modular Compiler - Windows Build Script
+REM Modular Compiler - Windows Build Script
 
 echo ========================================
-echo Lab 11: Modular Optimizing Compiler
+echo Modular Optimizing Compiler
 echo ========================================
 echo.
 
@@ -45,4 +45,3 @@ if %ERRORLEVEL% EQU 0 (
 )
 
 pause
-// Commit Marker

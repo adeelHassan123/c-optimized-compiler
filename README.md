@@ -1,4 +1,4 @@
-# Modular Optimizing Compiler - Lab 11
+# Modular Optimizing Compiler
 
 ## Overview
 
@@ -154,8 +154,8 @@ Intermediate Representation
 ### Build Instructions
 
 ```bash
-# Navigate to Lab11 directory
-cd Lab11
+# Navigate to project directory
+cd <project-directory>
 
 # Build the compiler
 make
@@ -438,6 +438,5 @@ The modular structure makes it easy to:
 
 ---
 
-**Lab 11: Modular Optimizing Compiler**
+**Modular Optimizing Compiler**
 *A comprehensive example of well-structured compiler design*
-// Commit Marker// Commit Marker

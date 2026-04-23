@@ -1,4 +1,4 @@
-# Lab 11: Modular Compiler - Build Guide
+# Modular Compiler - Build Guide
 
 ## Quick Start
 
@@ -46,7 +46,7 @@ bin\compiler.exe tests\test1.c
 ## Project Structure
 
 ```
-Lab11/
+project/
 ├── src/                      # Source code
 │   ├── types.h              # Type definitions
 │   ├── lexer.h / lexer.c    # Tokenization
@@ -238,4 +238,3 @@ This compiler implements classical compiler theory:
 
 ---
 
-// Commit Marker
