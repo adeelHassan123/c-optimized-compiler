@@ -1,0 +1,29 @@
+// Sample input for testing the Flex lexer
+// This file demonstrates all token categories
+
+int x = 42;
+float y = 3.14;
+
+if (x == y) then
+begin
+    x = x + 10;
+end
+
+function calculate(a, b)
+begin
+    return a ^ b;
+end
+
+procedure main()
+begin
+    int result = 0;
+    while (result != 100)
+    begin
+        result = result + 1;
+    end
+end
+
+/* Multi-line comment
+   This should be skipped by the lexer */
+
+// Single-line comment at the end
