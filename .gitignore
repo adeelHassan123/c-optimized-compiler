@@ -1,5 +1,34 @@
-﻿*.o
+# Compiled binaries and object files
+*.o
 *.exe
 *.out
 /bin/
+
+# Lexer and Parser generated files
+src/lexer.yy.c
+src/parser.tab.c
+src/parser.tab.h
+module1_lexer/lex.yy.c
+module1_lexer/lexer
+module2_parser/infix
+module2_parser/postfix
+module2_parser/prefix
+module8_llvm/ir_to_llvm
+module8_llvm/llvm_generator
+
+# Output files
+*.ll
+module8_llvm/output.ll
+
+# OS specific files
 .DS_Store
+Thumbs.db
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+docs/

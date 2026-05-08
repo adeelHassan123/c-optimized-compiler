@@ -1,52 +1,46 @@
 #ifndef IR_H
 #define IR_H
 
-#include "ast.h"
+#include "types.h"
 
-/* ====================== IR NODE TYPES ====================== */
+#define MAX_IR_NODES 1000
 
 typedef enum {
-    IR_ASSIGN,      /* Assignment: temp = value */
-    IR_BINOP,       /* Binary operation: result = left OP right */
-    IR_UNOP,        /* Unary operation: result = OP operand */
-    IR_IF_GOTO,     /* Conditional jump: if (cond) goto label */
-    IR_GOTO,        /* Unconditional jump */
-    IR_LABEL,       /* Label: label: */
-    IR_CALL,        /* Function call */
-    IR_RETURN,      /* Return statement */
-    IR_PARAM,       /* Parameter passing */
-    IR_PRINT        /* Print statement */
+    IR_ASSIGN,
+    IR_BINOP,
+    IR_UNOP,
+    IR_IF_GOTO,
+    IR_GOTO,
+    IR_LABEL,
+    IR_CALL,
+    IR_RETURN,
+    IR_PARAM,
+    IR_PRINT
 } IROpType;
 
-/* ====================== IR VALUE STRUCTURE ====================== */
-
 typedef enum {
-    IR_VAL_CONST,   /* Constant value */
-    IR_VAL_VAR,     /* Variable */
-    IR_VAL_TEMP     /* Temporary variable */
+    IR_VAL_CONST,
+    IR_VAL_VAR,
+    IR_VAL_TEMP
 } IRValueType;
 
 typedef struct {
     IRValueType type;
-    char name[IDENTIFIER_MAX];
+    char name[64];
     union {
         long int_val;
         double float_val;
     } value;
 } IRValue;
 
-/* ====================== IR INSTRUCTION ====================== */
-
 typedef struct {
     IROpType op;
     IRValue result;
     IRValue operand1;
     IRValue operand2;
-    int op_type;    /* For binary/unary operations (TOK_PLUS, TOK_MINUS, etc) */
-    int label;      /* For jumps */
+    int op_type;
+    int label;
 } IRInstruction;
-
-/* ====================== IR CODE ====================== */
 
 typedef struct {
     IRInstruction *instructions;
@@ -56,27 +50,12 @@ typedef struct {
     int label_count;
 } IRCode;
 
-/* ====================== IR INTERFACE ====================== */
-
-/* Create new IR code generator */
 IRCode *ir_create(void);
-
-/* Generate IR from AST */
 IRCode *ir_generate(ASTNode *ast);
-
-/* Allocate temporary variable */
 IRValue ir_alloc_temp(void);
-
-/* Allocate label */
 int ir_alloc_label(void);
-
-/* Emit IR instruction */
 void ir_emit(IRCode *code, IROpType op, IRValue result, IRValue op1, IRValue op2, int op_type);
-
-/* Print IR code */
 void ir_print(IRCode *code);
-
-/* Free IR code */
 void ir_free(IRCode *code);
 
-#endif /* IR_H */
+#endif

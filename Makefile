@@ -1,19 +1,20 @@
+# Compiler Pipeline Makefile (WSL Optimized)
 CC = gcc
 CFLAGS = -Wall -Wextra -g -O2
+LDFLAGS = -lm
 SRCDIR = src
 BINDIR = bin
 TESTDIR = tests
 
-# Targets
-SOURCES = $(SRCDIR)/lexer.c $(SRCDIR)/parser.c $(SRCDIR)/ast.c \
+
+# Main Compiler Components
+SOURCES = $(SRCDIR)/lexer.yy.c $(SRCDIR)/parser.tab.c $(SRCDIR)/ast.c \
           $(SRCDIR)/symbol_table.c $(SRCDIR)/optimizer.c $(SRCDIR)/ir.c \
 		  $(SRCDIR)/compiler.c
 
-HEADERS = $(SRCDIR)/types.h $(SRCDIR)/lexer.h $(SRCDIR)/parser.h \
-          $(SRCDIR)/ast.h $(SRCDIR)/symbol_table.h $(SRCDIR)/optimizer.h \
-		  $(SRCDIR)/ir.h
+HEADERS = $(SRCDIR)/types.h $(SRCDIR)/ast.h $(SRCDIR)/symbol_table.h \
+          $(SRCDIR)/optimizer.h $(SRCDIR)/ir.h $(SRCDIR)/parser.tab.h
 
-OBJECTS = $(SOURCES:.c=.o)
 TARGET = $(BINDIR)/compiler
 
 # Default target
@@ -23,33 +24,39 @@ all: $(BINDIR) $(TARGET)
 $(BINDIR):
 	mkdir -p $(BINDIR)
 
-# Compile
-$(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
-	@echo "Compilation successful!"
+# Generate Lexer and Parser using WSL
+$(SRCDIR)/lexer.yy.c: $(SRCDIR)/lexer.l $(SRCDIR)/parser.tab.h
+	flex -o $(SRCDIR)/lexer.yy.c $(SRCDIR)/lexer.l
 
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
+$(SRCDIR)/parser.tab.c $(SRCDIR)/parser.tab.h: $(SRCDIR)/parser.y
+	bison -d -o $(SRCDIR)/parser.tab.c $(SRCDIR)/parser.y
+
+# Compile the unified compiler
+$(TARGET): $(SOURCES)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LDFLAGS)
+	@echo "==============================================="
+	@echo "Unified Compiler Built Successfully!"
+	@echo "==============================================="
+
+# Main Pipeline Execution (Module 1 -> Module 8)
+run: $(TARGET)
+	@echo "Starting Compiler Pipeline for $(TESTDIR)/test1.c..."
+	@echo ""
+	$(TARGET) $(TESTDIR)/test1.c
+	@echo ""
+	@echo "Pipeline execution finished."
 
 # Clean
 clean:
-	rm -rf $(BINDIR) $(OBJECTS)
+	rm -rf $(BINDIR) $(SRCDIR)/lexer.yy.c $(SRCDIR)/parser.tab.c $(SRCDIR)/parser.tab.h
 	@echo "Clean complete"
 
-# Test
-test: $(TARGET)
-	@if [ -f $(TESTDIR)/test1.c ]; then \
-		$(TARGET) $(TESTDIR)/test1.c; \
-	else \
-		echo "No test files found"; \
-	fi
+# Module Testing
+test-all: run
+	@echo "Running tests on all modules..."
+	$(MAKE) -C module1_lexer test
+	$(MAKE) -C module2_parser test
+	$(MAKE) -C module4_first_follow run
+	$(MAKE) -C module8_llvm test
 
-# Help
-help:
-	@echo "Available targets:"
-	@echo "  make       - Build the compiler"
-	@echo "  make clean - Remove build artifacts"
-	@echo "  make test  - Run compiler on test files"
-	@echo "  make help  - Show this help message"
-
-.PHONY: all clean test help
+.PHONY: all clean run test-all
