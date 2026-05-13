@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimized C Compiler GUI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-microchip"></i> Compiler Pipeline</h1>
+            <p>Upload a .c file to see the full compilation process</p>
+        </header>
+
+        <div class="upload-section" id="drop-zone">
+            <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <h3>Drag & Drop your .c file here</h3>
+            <p>or click to browse from your computer</p>
+            <input type="file" id="file-input" accept=".c">
+            <div class="file-info" id="file-name-display"></div>
+        </div>
+
+        <div class="controls">
+            <button id="compile-btn" disabled>
+                <div class="loading-spinner" id="spinner"></div>
+                <span id="btn-text">Run Compilation</span>
+            </button>
+        </div>
+
+        <div class="result-section" id="result-area">
+            <div class="result-header">
+                <h2><i class="fas fa-terminal"></i> Pipeline Output</h2>
+                <button class="copy-btn" id="copy-btn" title="Copy output">
+                    <i class="far fa-copy"></i>
+                </button>
+            </div>
+            <div class="output-window">
+                <pre id="output-content"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const compileBtn = document.getElementById('compile-btn');
+        const resultArea = document.getElementById('result-area');
+        const outputContent = document.getElementById('output-content');
+        const spinner = document.getElementById('spinner');
+        const btnText = document.getElementById('btn-text');
+        const copyBtn = document.getElementById('copy-btn');
+
+        let selectedFile = null;
+
+        // Click to upload
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelection(e.target.files[0]);
+        });
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFileSelection(e.dataTransfer.files[0]);
+        });
+
+        function handleFileSelection(file) {
+            if (file && file.name.endsWith('.c')) {
+                selectedFile = file;
+                fileNameDisplay.textContent = `Selected: ${file.name}`;
+                fileNameDisplay.style.display = 'block';
+                compileBtn.disabled = false;
+            } else {
+                alert('Please select a valid .c file');
+            }
+        }
+
+        compileBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            // UI state: Loading
+            compileBtn.disabled = true;
+            spinner.style.display = 'block';
+            btnText.textContent = 'Compiling...';
+            resultArea.style.display = 'none';
+
+            try {
+                const response = await fetch('/compile', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    outputContent.textContent = data.output;
+                    resultArea.style.display = 'flex';
+                    resultArea.classList.add('animate-fade-in');
+                    
+                    // Scroll to results
+                    resultArea.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('An error occurred during compilation.');
+                console.error(error);
+            } finally {
+                compileBtn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = 'Run Compilation';
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            const text = outputContent.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = copyBtn.querySelector('i');
+                icon.className = 'fas fa-check';
+                setTimeout(() => {
+                    icon.className = 'far fa-copy';
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
