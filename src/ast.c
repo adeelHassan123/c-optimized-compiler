@@ -61,11 +61,62 @@ ASTNode *ast_new_program(int line) {
     return node;
 }
 
-void ast_add_node(ASTNode *program, ASTNode *node) {
-    if (program->type == NODE_PROGRAM) {
-        program->data.program.nodes[program->data.program.count++] = node;
-    } else if (program->type == NODE_BLOCK) {
-        program->data.block.statements[program->data.block.count++] = node;
+ASTNode *ast_new_if(ASTNode *condition, ASTNode *then_branch, ASTNode *else_branch, int line) {
+    ASTNode *node = ast_alloc_node(NODE_IF, line);
+    node->data.if_stmt.condition = condition;
+    node->data.if_stmt.then_branch = then_branch;
+    node->data.if_stmt.else_branch = else_branch;
+    return node;
+}
+
+ASTNode *ast_new_while(ASTNode *condition, ASTNode *body, int line) {
+    ASTNode *node = ast_alloc_node(NODE_WHILE, line);
+    node->data.while_stmt.condition = condition;
+    node->data.while_stmt.body = body;
+    return node;
+}
+
+ASTNode *ast_new_for(ASTNode *init, ASTNode *condition, ASTNode *increment, ASTNode *body, int line) {
+    ASTNode *node = ast_alloc_node(NODE_FOR, line);
+    node->data.for_stmt.init = init;
+    node->data.for_stmt.condition = condition;
+    node->data.for_stmt.increment = increment;
+    node->data.for_stmt.body = body;
+    return node;
+}
+
+ASTNode *ast_new_block(int line) {
+    ASTNode *node = ast_alloc_node(NODE_BLOCK, line);
+    node->data.block.statements = malloc(sizeof(ASTNode *) * 100);
+    node->data.block.count = 0;
+    return node;
+}
+
+ASTNode *ast_new_print(ASTNode *value, int line) {
+    ASTNode *node = ast_alloc_node(NODE_PRINT, line);
+    node->data.print.value = value;
+    return node;
+}
+
+ASTNode *ast_new_return(ASTNode *value, int line) {
+    ASTNode *node = ast_alloc_node(NODE_RETURN, line);
+    node->data.ret.value = value;
+    return node;
+}
+
+ASTNode *ast_new_call(const char *name, ASTNode *arg, int line) {
+    ASTNode *node = ast_alloc_node(NODE_CALL, line);
+    strncpy(node->data.call.name, name, 127);
+    node->data.call.arg = arg;
+    return node;
+}
+
+void ast_add_node(ASTNode *parent, ASTNode *child) {
+    if (!parent || !child) return;
+    if (parent->type == NODE_PROGRAM) {
+        parent->data.program.nodes[parent->data.program.count++] = child;
+    } else if (parent->type == NODE_BLOCK) {
+        parent->data.block.statements[parent->data.block.count++] = child;
     }
 }
 
@@ -103,10 +154,36 @@ void ast_print(ASTNode *node, int indent) {
             printf("RETURN:\n");
             if (node->data.ret.value) ast_print(node->data.ret.value, indent + 1);
             break;
+        case NODE_IF:
+            printf("IF:\n");
+            ast_print(node->data.if_stmt.condition, indent + 1);
+            ast_print(node->data.if_stmt.then_branch, indent + 1);
+            if (node->data.if_stmt.else_branch) {
+                for (int i = 0; i < indent; i++) printf("  ");
+                printf("ELSE:\n");
+                ast_print(node->data.if_stmt.else_branch, indent + 1);
+            }
+            break;
+        case NODE_WHILE:
+            printf("WHILE:\n");
+            ast_print(node->data.while_stmt.condition, indent + 1);
+            ast_print(node->data.while_stmt.body, indent + 1);
+            break;
+        case NODE_FOR:
+            printf("FOR:\n");
+            ast_print(node->data.for_stmt.init, indent + 1);
+            ast_print(node->data.for_stmt.condition, indent + 1);
+            ast_print(node->data.for_stmt.increment, indent + 1);
+            ast_print(node->data.for_stmt.body, indent + 1);
+            break;
         case NODE_BLOCK:
             printf("BLOCK:\n");
             for (int i = 0; i < node->data.block.count; i++)
                 ast_print(node->data.block.statements[i], indent + 1);
+            break;
+        case NODE_CALL:
+            printf("CALL: %s\n", node->data.call.name);
+            ast_print(node->data.call.arg, indent + 1);
             break;
         default: printf("UNKNOWN NODE TYPE: %d at line %d\n", node->type, node->line); break;
     }

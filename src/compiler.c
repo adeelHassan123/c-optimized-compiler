@@ -127,16 +127,110 @@ int main(int argc, char **argv) {
     printf("\ndefine i32 @main() {\n");
     printf("entry:\n");
     
+    // Track declared variables to avoid double alloca
+    char declared_vars[100][128];
+    int declared_count = 0;
+
     for (int i = 0; i < ir->instruction_count; i++) {
         IRInstruction *instr = &ir->instructions[i];
-        if (instr->op == IR_ASSIGN) {
-            printf("  %%%s = alloca i32, align 4\n", instr->result.name);
-            printf("  store i32 %s, i32* %%%s, align 4\n", instr->operand1.name, instr->result.name);
-        } else if (instr->op == IR_PRINT) {
-            printf("  %%val_%d = load i32, i32* %%%s, align 4\n", i, instr->result.name);
-            printf("  %%call_%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str, i32 0, i32 0), i32 %%val_%d)\n", i, i);
+        switch (instr->op) {
+            case IR_LABEL:
+                printf("L%d:\n", instr->op_type);
+                break;
+            case IR_GOTO:
+                printf("  br label %%L%d\n", instr->op_type);
+                break;
+            case IR_IF_GOTO: {
+                int next_L = ir_alloc_label(); 
+                printf("  %%cond_%d = icmp ne i32 %%%s, 0\n", i, instr->operand1.name);
+                printf("  br i1 %%cond_%d, label %%L%d, label %%L%d\n", i, instr->op_type, next_L);
+                printf("L%d:\n", next_L);
+                break;
+            }
+            case IR_ASSIGN: {
+                int var_found = 0;
+                for(int j=0; j<declared_count; j++) if(strcmp(declared_vars[j], instr->result.name) == 0) { var_found = 1; break; }
+                if (!var_found && instr->result.type == IR_VAL_VAR) {
+                    printf("  %%%s = alloca i32, align 4\n", instr->result.name);
+                    strcpy(declared_vars[declared_count++], instr->result.name);
+                }
+                
+                if (instr->operand1.type == IR_VAL_CONST) {
+                    printf("  store i32 %ld, i32* %%%s, align 4\n", instr->operand1.value.int_val, instr->result.name);
+                } else {
+                    printf("  %%val_tmp_%d = load i32, i32* %%%s, align 4\n", i, instr->operand1.name);
+                    printf("  store i32 %%val_tmp_%d, i32* %%%s, align 4\n", i, instr->result.name);
+                }
+                break;
+            }
+            case IR_BINOP: {
+                const char *op_llvm = "add";
+                switch(instr->op_type) {
+                    case TOK_PLUS: op_llvm = "add"; break;
+                    case TOK_MINUS: op_llvm = "sub"; break;
+                    case TOK_MUL: op_llvm = "mul"; break;
+                    case TOK_DIV: op_llvm = "sdiv"; break;
+                    case TOK_EQ: op_llvm = "icmp eq"; break;
+                    case TOK_LT: op_llvm = "icmp slt"; break;
+                    case TOK_GT: op_llvm = "icmp sgt"; break;
+                    case TOK_LTE: op_llvm = "icmp sle"; break;
+                    case TOK_GTE: op_llvm = "icmp sge"; break;
+                }
+                
+                char op1_val[128], op2_val[128];
+                if (instr->operand1.type == IR_VAL_CONST) sprintf(op1_val, "%ld", instr->operand1.value.int_val);
+                else {
+                    printf("  %%load_%d_1 = load i32, i32* %%%s, align 4\n", i, instr->operand1.name);
+                    sprintf(op1_val, "%%load_%d_1", i);
+                }
+                
+                if (instr->operand2.type == IR_VAL_CONST) sprintf(op2_val, "%ld", instr->operand2.value.int_val);
+                else {
+                    printf("  %%load_%d_2 = load i32, i32* %%%s, align 4\n", i, instr->operand2.name);
+                    sprintf(op2_val, "%%load_%d_2", i);
+                }
+
+                if (strncmp(op_llvm, "icmp", 4) == 0) {
+                    printf("  %%%s_bool = %s i32 %s, %s\n", instr->result.name, op_llvm, op1_val, op2_val);
+                    printf("  %%%s = zext i1 %%%s_bool to i32\n", instr->result.name, instr->result.name);
+                } else {
+                    printf("  %%%s = %s i32 %s, %s\n", instr->result.name, op_llvm, op1_val, op2_val);
+                }
+                break;
+            }
+            case IR_PRINT:
+                if (instr->result.type == IR_VAL_VAR) {
+                    printf("  %%val_p_%d = load i32, i32* %%%s, align 4\n", i, instr->result.name);
+                    printf("  %%call_p_%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str, i32 0, i32 0), i32 %%val_p_%d)\n", i, i);
+                } else {
+                    printf("  %%call_p_%d = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.str, i32 0, i32 0), i32 %%%s)\n", i, instr->result.name);
+                }
+                break;
+            case IR_RETURN:
+                if (instr->operand1.type == IR_VAL_CONST) printf("  ret i32 %ld\n", instr->operand1.value.int_val);
+                else {
+                    printf("  %%ret_val = load i32, i32* %%%s, align 4\n", instr->operand1.name);
+                    printf("  ret i32 %%ret_val\n");
+                }
+                break;
+            case IR_CALL: {
+                // Simplified call for log/exp
+                char arg_val[128];
+                if (instr->operand2.type == IR_VAL_CONST) sprintf(arg_val, "%ld", instr->operand2.value.int_val);
+                else {
+                    printf("  %%load_call_%d = load i32, i32* %%%s, align 4\n", i, instr->operand2.name);
+                    sprintf(arg_val, "%%load_call_%d", i);
+                }
+                printf("  declare double @%s(double)\n", instr->operand1.name);
+                printf("  %%conv_%d = sitofp i32 %s to double\n", i, arg_val);
+                printf("  %%call_res_%d = call double @%s(double %%conv_%d)\n", i, instr->operand1.name, i);
+                printf("  %%%s = fptosi double %%call_res_%d to i32\n", instr->result.name, i);
+                break;
+            }
+            default: break;
         }
     }
+    // Ensure final return if not present
     printf("  ret i32 0\n");
     printf("}\n");
     printf("\033[1;33m; --- END OF LLVM IR ---\033[0m\n");

@@ -146,6 +146,11 @@ typedef struct ASTNode {
             struct ASTNode **nodes;
             int count;
         } program;
+
+        struct {
+            char name[128];
+            struct ASTNode *arg;
+        } call;
     } data;
 } ASTNode;
 

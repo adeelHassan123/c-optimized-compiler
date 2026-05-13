@@ -40,6 +40,11 @@ void ir_emit(IRCode *code, IROpType op, IRValue result, IRValue op1, IRValue op2
             else printf("%s = %s\n", result.name, op1.name);
             break;
         case IR_BINOP: printf("%s = %s op(%d) %s\n", result.name, op1.name, op_type, op2.name); break;
+        case IR_IF_GOTO: printf("if %s goto L%d\n", op1.name, op_type); break;
+        case IR_GOTO: printf("goto L%d\n", op_type); break;
+        case IR_LABEL: printf("L%d:\n", op_type); break;
+        case IR_CALL: printf("%s = call %s(%s)\n", result.name, op1.name, op2.name); break;
+        case IR_RETURN: printf("return %s\n", op1.name); break;
         case IR_PRINT: printf("print %s\n", result.name); break;
         default: printf("Other op\n"); break;
     }
@@ -64,6 +69,13 @@ static IRValue generate_ir_expr(IRCode *code, ASTNode *expr) {
             ir_emit(code, IR_ASSIGN, var, val, val, 0);
             return var;
         }
+        case NODE_CALL: {
+            IRValue arg = generate_ir_expr(code, expr->data.call.arg);
+            IRValue func = {IR_VAL_VAR, "", {0}}; strcpy(func.name, expr->data.call.name);
+            IRValue result = ir_alloc_temp();
+            ir_emit(code, IR_CALL, result, func, arg, 0);
+            return result;
+        }
         default: { IRValue v = {IR_VAL_CONST, "", {0}}; return v; }
     }
 }
@@ -79,13 +91,80 @@ static void generate_ir_stmt(IRCode *code, ASTNode *stmt) {
             }
             break;
         }
+        case NODE_ASSIGN: {
+            generate_ir_expr(code, stmt);
+            break;
+        }
         case NODE_PRINT: {
             IRValue val = generate_ir_expr(code, stmt->data.print.value);
             ir_emit(code, IR_PRINT, val, val, val, 0);
             break;
         }
+        case NODE_BLOCK:
+            for (int i = 0; i < stmt->data.block.count; i++) generate_ir_stmt(code, stmt->data.block.statements[i]);
+            break;
         case NODE_PROGRAM:
             for (int i = 0; i < stmt->data.program.count; i++) generate_ir_stmt(code, stmt->data.program.nodes[i]);
+            break;
+        case NODE_IF: {
+            int L_else = ir_alloc_label();
+            int L_end = ir_alloc_label();
+            IRValue cond = generate_ir_expr(code, stmt->data.if_stmt.condition);
+            
+            IRValue dummy = {IR_VAL_CONST, "", {0}};
+            // Emit if_false cond goto L_else
+            ir_emit(code, IR_IF_GOTO, dummy, cond, dummy, L_else);
+            
+            generate_ir_stmt(code, stmt->data.if_stmt.then_branch);
+            ir_emit(code, IR_GOTO, dummy, dummy, dummy, L_end);
+            
+            ir_emit(code, IR_LABEL, dummy, dummy, dummy, L_else);
+            if (stmt->data.if_stmt.else_branch) {
+                generate_ir_stmt(code, stmt->data.if_stmt.else_branch);
+            }
+            ir_emit(code, IR_LABEL, dummy, dummy, dummy, L_end);
+            break;
+        }
+        case NODE_WHILE: {
+            int L_start = ir_alloc_label();
+            int L_end = ir_alloc_label();
+            IRValue dummy = {IR_VAL_CONST, "", {0}};
+            
+            ir_emit(code, IR_LABEL, dummy, dummy, dummy, L_start);
+            IRValue cond = generate_ir_expr(code, stmt->data.while_stmt.condition);
+            ir_emit(code, IR_IF_GOTO, dummy, cond, dummy, L_end);
+            
+            generate_ir_stmt(code, stmt->data.while_stmt.body);
+            ir_emit(code, IR_GOTO, dummy, dummy, dummy, L_start);
+            ir_emit(code, IR_LABEL, dummy, dummy, dummy, L_end);
+            break;
+        }
+        case NODE_FOR: {
+            int L_start = ir_alloc_label();
+            int L_end = ir_alloc_label();
+            IRValue dummy = {IR_VAL_CONST, "", {0}};
+            
+            generate_ir_stmt(code, stmt->data.for_stmt.init);
+            ir_emit(code, IR_LABEL, dummy, dummy, dummy, L_start);
+            IRValue cond = generate_ir_expr(code, stmt->data.for_stmt.condition);
+            ir_emit(code, IR_IF_GOTO, dummy, cond, dummy, L_end);
+            
+            generate_ir_stmt(code, stmt->data.for_stmt.body);
+            generate_ir_stmt(code, stmt->data.for_stmt.increment);
+            ir_emit(code, IR_GOTO, dummy, dummy, dummy, L_start);
+            ir_emit(code, IR_LABEL, dummy, dummy, dummy, L_end);
+            break;
+        }
+        case NODE_RETURN: {
+            IRValue val = generate_ir_expr(code, stmt->data.ret.value);
+            IRValue dummy = {IR_VAL_CONST, "", {0}};
+            ir_emit(code, IR_RETURN, dummy, val, dummy, 0);
+            break;
+        }
+        case NODE_CALL:
+            generate_ir_expr(code, stmt);
+            break;
+        default:
             break;
     }
 }
